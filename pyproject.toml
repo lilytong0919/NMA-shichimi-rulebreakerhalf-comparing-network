@@ -3,9 +3,12 @@ requires = ["setuptools>=61"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "my-package"
+name = "monkeypaw"
 version = "0.1.0"
 dependencies = [
     "numpy",
-    "torch"
+    "torch",
+    "pandas",
+    "pynapple",
+    "sklearn"
 ]
