@@ -1,6 +1,8 @@
+from logging import warning
+
 import pynapple as nap
 import numpy as np
-from shared.utils import parse_kwargs
+from monkeypaw.utils import parse_kwargs
 from scipy.signal.windows import boxcar, gaussian
 
 # try this, set backend of pynapple to jax so we can have GPU utilization?
@@ -42,10 +44,17 @@ def make_fr(spikes: nap.TsGroup, **kwargs) -> dict[str, nap.TsdFrame]:
             smooth_kernel = smooth_kernel / smooth_kernel.sum()
 
     # Get subselection of data maybe? Or I should probably do this later
+    if isinstance(spikes, nap.TsGroup):
+        fr = spikes.count(
+            cfg["dt"], time_units=time_unit
+        )  # /cfg["dt"]#,ep=nap.IntervalSet(my_t[0]-0.05,my_t[-1]))
+    elif isinstance(spikes, (nap.Tsd, nap.TsdFrame, nap.TsdTensor)):
+        fr = spikes
+        warning.warn(
+            f"Input is not a TsGroup, will not compute firing rate with dt {cfg.dt}"
+        )
     output = {}
-    fr = spikes.count(
-        cfg["dt"], time_units=time_unit
-    )  # /cfg["dt"]#,ep=nap.IntervalSet(my_t[0]-0.05,my_t[-1]))
+
     steps = fr.copy()
     if boxcar_kernel is not None:
         fr = fr.convolve(boxcar_kernel)
@@ -99,18 +108,19 @@ def get_peth(
     else:
         raise TypeError(f"events must be IntervalSet, Ts, or Tsd, got {type(events)}")
 
-    # Choose compute function based on data type
-    if isinstance(data, (nap.Tsd, nap.TsdFrame, nap.TsdTensor)):
-        peth = nap.compute_perievent_continuous(
-            timeseries=data, tref=tref, minmax=win, time_unit="s"
-        )
-    elif isinstance(data, (nap.TsGroup, nap.Ts)):
-        peth = nap.compute_perievent(
-            timestamps=data, tref=tref, minmax=win, time_unit="s"
-        )
-    else:
-        raise TypeError(
-            f"data must be Tsd, TsdFrame, TsdTensor, or TsGroup, got {type(data)}"
-        )
+    peth = nap.compute_perievent(timestamps=data, tref=tref, minmax=win, time_unit="s")
+    # # Choose compute function based on data type
+    # if isinstance(data, (nap.Tsd, nap.TsdFrame, nap.TsdTensor)):
+    #     peth = nap.compute_perievent_continuous(
+    #         timeseries=data, tref=tref, minmax=win, time_unit="s"
+    #     )
+    # elif isinstance(data, (nap.TsGroup, nap.Ts)):
+    #     peth = nap.compute_perievent(
+    #         timestamps=data, tref=tref, minmax=win, time_unit="s"
+    #     )
+    # else:
+    #     raise TypeError(
+    #         f"data must be Tsd, TsdFrame, TsdTensor, or TsGroup, got {type(data)}"
+    #     )
 
     return peth
