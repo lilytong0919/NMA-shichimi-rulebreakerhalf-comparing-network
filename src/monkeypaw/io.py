@@ -58,7 +58,7 @@ def get_behav(data: nap.NWBFile) -> nap.TsdFrame:
     """
     behav_keys = [
         "EventGo_cue",
-        "EventTarget_onset",  # trigger times
+        "EventTarget_Onset",  # trigger times
         "target_ID",
         "target_dir",
         "result",  # cue identity, and behav outcome
