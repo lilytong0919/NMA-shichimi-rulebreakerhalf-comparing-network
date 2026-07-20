@@ -18,7 +18,8 @@ dependencies = [
     "matplotlib",
     "seaborn",
     "motornet",
-    "pyarrow"
+    "pyarrow",
+    "rsatoolbox",
 ]
 
 [tool.setuptools]

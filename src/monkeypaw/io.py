@@ -93,7 +93,7 @@ def get_spike_count(data: nap.NWBFile):
         spike_count: pynapple.TsdFrame
             The spike count from the loaded nwb file.
     """
-    spike_count = data["spike_count"].copy()
+    spike_count = data["spikes_counts"].copy()
     return spike_count
 
 
@@ -108,14 +108,45 @@ def get_info(data: nap.NWBFile):
         info: pynapple.TsdFrame
             The info data from the loaded nwb file.
     """
-    info_keys = ["trial_id", "animal", "datasetID", "session"]
+    info_keys = ["trial_id", "animal", "datasetID", "session", "brain_region"]
     d = []
     t = data[info_keys[0]].times()
     for k in info_keys:
-        if k in data.keys():
-            d.append(data[k].data())
-            if not np.all(np.isclose(t, data[k].times())):
-                raise ValueError(f"Times for {k} do not match the first key's times.")
+        if k in data.keys() or k == "brain_region":
+            # if key is brain region we figureout the brain region from the datasetID
+            if k == "brain_region":
+                datasetID = data["datasetID"].data()[0]
+                if (
+                    datasetID == 3
+                ):  # dataset 3 is the only dataset that has brain region info
+                    to_append = data[k].data()
+                elif datasetID == 4:  # dataset 4 is all M1
+                    to_append = np.repeat("M1", len(t))
+                elif (
+                    datasetID == 5
+                ):  # 5 if most complicated, only animal 3 and 4 have known brain region,
+                    # info obtained from original paper: https://www.nature.com/articles/s41593-019-0555-4#Sec11
+                    # monkey J = animal4 = M1, monkey T = animal3 = PMd
+
+                    # we initialize the data as nans
+                    to_append = np.full_like(t, np.nan, dtype=object)
+                    # then check for animal id, replace corresponding position with known brain region
+                    bw3 = data["animal"].to_numpy() == 3
+                    bw4 = data["animal"].to_numpy() == 4
+                    to_append[bw3] = "PMd"
+                    to_append[bw4] = "M1"
+
+                else:
+                    to_append = np.full_like(t, np.nan, dtype=object)
+            else:
+                to_append = data[k].data()
+                # check timestamps matches if we are just getting the data from the nwb file, if not we raise an error
+                if not np.all(np.isclose(t, data[k].times())):
+                    raise ValueError(
+                        f"Times for {k} do not match the first key's times."
+                    )
+            # append the data to the list
+            d.append(to_append)
         else:
             d.append(np.full_like(t, np.nan))  # Fill with NaN if key is missing
     data = nap.TsdFrame(t, np.column_stack(d), columns=info_keys)
