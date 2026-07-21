@@ -73,7 +73,7 @@ def get_behav(data: nap.NWBFile) -> nap.TsdFrame:
     t = data[behav_keys[0]].times()
     for k in behav_keys:
         if k in data.keys():
-            d.append(data[k].data())
+            d.append(data[k].data()[:])
             if not np.all(np.isclose(t, data[k].times())):
                 raise ValueError(f"Times for {k} do not match the first key's times.")
         else:
@@ -119,7 +119,7 @@ def get_info(data: nap.NWBFile):
                 if (
                     datasetID == 3
                 ):  # dataset 3 is the only dataset that has brain region info
-                    to_append = data[k].data()
+                    to_append = data[k].data()[:]
                 elif datasetID == 4:  # dataset 4 is all M1
                     to_append = np.repeat("M1", len(t))
                 elif (
@@ -139,12 +139,15 @@ def get_info(data: nap.NWBFile):
                 else:
                     to_append = np.full_like(t, np.nan, dtype=object)
             else:
-                to_append = data[k].data()
+                to_append = data[k].data()[:]
                 # check timestamps matches if we are just getting the data from the nwb file, if not we raise an error
                 if not np.all(np.isclose(t, data[k].times())):
                     raise ValueError(
                         f"Times for {k} do not match the first key's times."
                     )
+            # try to deal with bytestring, if the data is bytestring we decode it to string
+            if isinstance(to_append[0], bytes):
+                to_append = np.array([x.decode("utf-8") for x in to_append])
             # append the data to the list
             d.append(to_append)
         else:

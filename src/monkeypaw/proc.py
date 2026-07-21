@@ -1,126 +1,103 @@
-from logging import warning
-
-import pynapple as nap
 import numpy as np
-from monkeypaw.utils import parse_kwargs
-from scipy.signal.windows import boxcar, gaussian
+import pynapple as nap
 
-# try this, set backend of pynapple to jax so we can have GPU utilization?
-nap.nap_config.set_backend("numba")
-
-
-# processing function for neural data.
-# Work on pynapple data structures.
-def make_fr(spikes: nap.TsGroup, **kwargs) -> dict[str, nap.TsdFrame]:
-    # TODO: add option to input tsdFrame as well
-    # Bin into certaint time bins, normalize, and smooth.
-    cfg = {
-        "dt": 0.05,
-        "boxcar_size": 0.1,
-        "smooth": None,
-        "gausswin_size": 1,
-        "gausswin_sd": 0.02,
-        "gauss_normalize": True,
-        "time_units": "s",
-    }
-    cfg = parse_kwargs(
-        cfg, kwargs, strict=False
-    )  # update cfg with kwargs, check for unkown keywords
-    # potentially add logger to load config to ensure correct config has been pass down.
-
-    time_unit = cfg["time_units"]
-
-    boxcar_kernel = None
-    smooth_kernel = None  # a list of kernels to apply for smoothing maybe?
-    if cfg["boxcar_size"]:
-        print(f"Creating boxcar kernel, will be applied")
-        boxcar_kernel = boxcar(M=int(cfg["boxcar_size"] / cfg["dt"]))
-    if cfg["smooth"] == "gauss":
-        print(f"Creating gaussian kernel, will be applied")
-        smooth_kernel = gaussian(
-            M=int(cfg["gausswin_size"] / cfg["dt"]), std=cfg["gausswin_sd"] / cfg["dt"]
-        )
-        if cfg["gauss_normalize"]:
-            smooth_kernel = smooth_kernel / smooth_kernel.sum()
-
-    # Get subselection of data maybe? Or I should probably do this later
-    if isinstance(spikes, nap.TsGroup):
-        fr = spikes.count(
-            cfg["dt"], time_units=time_unit
-        )  # /cfg["dt"]#,ep=nap.IntervalSet(my_t[0]-0.05,my_t[-1]))
-    elif isinstance(spikes, (nap.Tsd, nap.TsdFrame, nap.TsdTensor)):
-        fr = spikes
-        warning.warn(
-            f"Input is not a TsGroup, will not compute firing rate with dt {cfg.dt}"
-        )
-    output = {}
-
-    steps = fr.copy()
-    if boxcar_kernel is not None:
-        fr = fr.convolve(boxcar_kernel)
-        moving_bin = fr.copy()
-    else:
-        moving_bin = None
-    # zfr = (fr - np.nanmean(fr,0))/np.nanstd(fr,0)
-    if smooth_kernel is not None:
-        fr = fr.convolve(smooth_kernel)
-        smoothed = fr.copy()
-    else:
-        smoothed = None
-
-    output = {"steps": steps, "bins": moving_bin, "smoothed": smoothed}
-    return output
+EVENT_COL = ["EventGo_cue", "EventTarget_Onset"]
+BEHAV_INFO_COL = ["target_ID", "target_dir", "result"]
+BEHAV_VAR_COL = [
+    "cursor_pos_x",
+    "cursor_pos_y",
+    "cursor_vel_x",
+    "cursor_vel_y",
+    "cursor_acc_x",
+    "cursor_acc_y",
+]
 
 
-def get_peth(
-    data: nap.Tsd | nap.TsdFrame | nap.TsdTensor | nap.TsGroup,
-    events: nap.IntervalSet | nap.Ts,
-    win: tuple[int, int],
-) -> nap.TsdTensor | dict:
+def get_event_timestamps(behav, info, event_name):
     """
-    Compute perievent time histogram for continuous or spike data.
+    Get the timestamps of a specific event from the behavioral data.
 
-    Parameters
-    ----------
-    data : nap.Tsd | nap.TsdFrame | nap.TsdTensor | nap.TsGroup
-        Input data. If Tsd/TsdFrame/TsdTensor, uses compute_perievent_continuous.
-        If TsGroup, uses compute_perievent.
-    events : nap.IntervalSet | nap.Ts
-        Reference events. If IntervalSet, will extract interval centers.
-        If Ts/Tsd, uses timestamps directly.
-        Technically pynapple allow events to be Tsd/TsdFrame/TsdTensor too. Only
-        the index of Tsd/TsdFrame/TsdTensor will be used as event times. For simplicity
-        and less confusion, We set a stricter requirement to only allow Ts.
-    win : tuple[int, int]
-        Time window around events (start, end) in seconds.
+    Parameters:
+    - behav: The behavioral data (nap.TsdFrame).
+    - event_name: The name of the event to extract timestamps for.
 
-    Returns
-    -------
-    nap.TsdTensor | dict
-        For continuous data: (time, ev, data_dimensions) TsdTensor
-        For TsGroup: dict of TsdFrame per unit
+    Returns:
+    - A nap.Ts object containing the timestamps of the specified event.
     """
-    # Determine event times: get center if IntervalSet, otherwise use directly
-    if isinstance(events, nap.IntervalSet):
-        tref = events.get_intervals_center()
-    elif isinstance(events, (nap.Ts, nap.Tsd)):
-        tref = events
-    else:
-        raise TypeError(f"events must be IntervalSet, Ts, or Tsd, got {type(events)}")
+    t = behav.times()
 
-    peth = nap.compute_perievent(timestamps=data, tref=tref, minmax=win, time_unit="s")
-    # # Choose compute function based on data type
-    # if isinstance(data, (nap.Tsd, nap.TsdFrame, nap.TsdTensor)):
-    #     peth = nap.compute_perievent_continuous(
-    #         timeseries=data, tref=tref, minmax=win, time_unit="s"
-    #     )
-    # elif isinstance(data, (nap.TsGroup, nap.Ts)):
-    #     peth = nap.compute_perievent(
-    #         timestamps=data, tref=tref, minmax=win, time_unit="s"
-    #     )
-    # else:
-    #     raise TypeError(
-    #         f"data must be Tsd, TsdFrame, TsdTensor, or TsGroup, got {type(data)}"
-    #     )
+    # get a binary mask of event timestamps
+    bw = behav[event_name] == True
 
-    return peth
+    # get info about the event
+    event_info = info.as_dataframe().iloc[np.where(bw)[0]].reset_index(drop=True)
+    behav_info = behav.as_dataframe().iloc[np.where(bw)[0]].reset_index(drop=True)
+    behav_info = behav_info[BEHAV_INFO_COL]
+
+    # create ts object and concate info
+    ev = nap.Ts(t[behav[event_name] == True], time_units="s")
+    info = event_info.join(behav_info, how="inner")
+    return ev, info
+
+
+def get_index_from_info(ev_info, by=["animal", "session"]):
+    """
+    Get a dictionary of {condition: indices} from the event info dataframe with the specified grouping columns.
+    Parameters:
+    - ev_info: The event information (pandas DataFrame).
+    - by: List of column names to group by (default is ["animal", "session", "trial"]).
+
+    Returns:
+    - A pandas Index object containing the unique combinations of specified columns.
+    """
+    grps = ev_info.groupby(by)
+    index_dict = {name: group.index for name, group in grps}
+    return index_dict
+
+
+def compute_perievent(
+    spike_count,
+    behav,
+    info,
+    win=(-0.5, 1.0),
+    bin_size=0.03,
+    ev_names=["EventGo_cue", "EventTarget_Onset"],
+    ev_short=["go", "target"],
+):
+    """
+    Compute perievent spike counts for each neuron around the specified event timestamps.
+
+    Parameters:
+    - spike_count: The spike count data (nap.TsdFrame).
+    - behav: The behavioral data (nap.TsdFrame).
+    - info: The info data (pandas DataFrame).
+    - win: A tuple specifying the time window around the event (start, end).
+    - bin_size: The size of the time bins for counting spikes (default is 0.03 seconds).
+    - ev_names: A list of event names to compute perievent spike counts for (default is ["EventGo_cue", "EventTarget_Onset"]).
+    - ev_short: A list of short names for the events (default is ["go", "target"]).
+
+    Returns:
+    - A nap.TsdFrame containing the perievent spike counts for each neuron.
+    """
+    out = {}
+
+    # compute a coefficient to rescale bin_average to bin_count
+    bs_prev = np.mean(np.diff(spike_count.times()))
+    coef = bin_size / bs_prev
+
+    for name, short in zip(ev_names, ev_short):
+        ev, ev_info = get_event_timestamps(behav, info, event_name=name)
+        out[f"info_{short}"] = ev_info
+        out[f"ev_{short}"] = ev
+
+        # compute peth, and bin average then we calculate a coefficient to scale the binned peth to get the bin_count
+        peth = coef * nap.compute_perievent(spike_count, ev, window=win).bin_average(
+            bin_size=bin_size, time_units="s"
+        )
+        out[f"peth_{short}"] = peth
+        out[f"bpeth_{short}"] = nap.compute_perievent(
+            behav[BEHAV_VAR_COL], ev, window=win
+        ).bin_average(bin_size=bin_size, time_units="s")
+        out[f"bpeth_{short}_columns"] = BEHAV_VAR_COL
+
+    return out
