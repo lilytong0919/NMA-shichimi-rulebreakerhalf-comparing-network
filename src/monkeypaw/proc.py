@@ -40,17 +40,20 @@ def get_event_timestamps(behav, info, event_name):
     return ev, info
 
 
-def get_index_from_info(ev_info, by=["animal", "session"]):
+def get_index_from_info(ev_info, by=["animal", "session"], out_pos=False):
     """
     Get a dictionary of {condition: indices} from the event info dataframe with the specified grouping columns.
     Parameters:
     - ev_info: The event information (pandas DataFrame).
     - by: List of column names to group by (default is ["animal", "session", "trial"]).
+    - out_pos: If True, returns the positions of the indices instead of the label indices.
 
     Returns:
     - A pandas Index object containing the unique combinations of specified columns.
     """
-    grps = ev_info.groupby(by)
+    if out_pos:
+        ev_info = ev_info.reset_index(drop=True)
+    grps = ev_info.groupby(by, sort=False, dropna=False)
     index_dict = {name: group.index for name, group in grps}
     return index_dict
 
