@@ -313,32 +313,63 @@ def find_incorrectly_labeled_rewarded_trials(df,
         has_target_onset_event_seg = not target_onset_event_rows.empty
         has_go_cue_event_seg = not go_cue_event_rows.empty
 
+        # Initialize flags for comparison logic
+        target_onset_dist_valid = False
+        is_target_onset_within_criteria = False
+        go_cue_dist_valid = False
+        is_go_cue_within_criteria = False
         # Check if cursor position columns exist and have non-NaN values
         cursor_data_present = 'cursor_pos_x' in segment_df.columns and \
                               not segment_df['cursor_pos_x'].isnull().all() and \
                               not segment_df['cursor_pos_y'].isnull().all()
 
+
         # --- Criterion 1: Target Onset / Go Cue position ---
-        if cursor_data_present:
+        # Check if cursor position columns exist
+        cursor_columns_exist = 'cursor_pos_x' in segment_df.columns and 'cursor_pos_y' in segment_df.columns
+
+        if not cursor_columns_exist:
+            segment_reasons.append("Cursor position (x,y) columns missing for segment")
+        else:
+            # Process Target Onset event
             if has_target_onset_event_seg:
                 target_onset_x = target_onset_event_rows['cursor_pos_x'].iloc[0]
                 target_onset_y = target_onset_event_rows['cursor_pos_y'].iloc[0]
                 if not np.isnan(target_onset_x) and not np.isnan(target_onset_y):
                     dist_target_onset_seg = np.sqrt(target_onset_x**2 + target_onset_y**2)
+                    target_onset_dist_valid = True # Mark as valid for comparison
                     if dist_target_onset_seg > pos_threshold_cm:
                         is_incorrect_segment = True
                         segment_reasons.append(f"Target Onset dist ({dist_target_onset_seg:.2f}cm) > {pos_threshold_cm}cm")
+                        is_target_onset_within_criteria = False
+                    else:
+                        is_target_onset_within_criteria = True
 
+            # Process Go Cue event
             if has_go_cue_event_seg:
                 go_cue_x = go_cue_event_rows['cursor_pos_x'].iloc[0]
                 go_cue_y = go_cue_event_rows['cursor_pos_y'].iloc[0]
                 if not np.isnan(go_cue_x) and not np.isnan(go_cue_y):
                     dist_go_cue_seg = np.sqrt(go_cue_x**2 + go_cue_y**2)
+                    go_cue_dist_valid = True # Mark as valid for comparison
                     if dist_go_cue_seg > pos_threshold_cm:
                         is_incorrect_segment = True
                         segment_reasons.append(f"Go Cue dist ({dist_go_cue_seg:.2f}cm) > {pos_threshold_cm}cm")
-        else:
-            segment_reasons.append("Cursor position data missing for initial position check")
+                        is_go_cue_within_criteria = False
+                    else:
+                        is_go_cue_within_criteria = True
+
+            # Check if one event's position is within criteria and the other's is outside
+            if target_onset_dist_valid and go_cue_dist_valid:
+                if (is_target_onset_within_criteria and not is_go_cue_within_criteria) or \
+                   (not is_target_onset_within_criteria and is_go_cue_within_criteria):
+                    is_incorrect_segment = True
+                    reason_str = f"Target Onset (dist={dist_target_onset_seg:.2f}cm) is " + \
+                                 ("within" if is_target_onset_within_criteria else "outside") + \
+                                 f" criteria, while Go Cue (dist={dist_go_cue_seg:.2f}cm) is " + \
+                                 ("within" if is_go_cue_within_criteria else "outside") + \
+                                 f" criteria (threshold: {pos_threshold_cm}cm)."
+                    segment_reasons.append(reason_str)
 
         # --- Criterion 2: Duration from Go Cue to End of Trial Segment --- (requires Go_cue event)
         # may add duration from target_onset event to end of trial segment later
@@ -416,4 +447,9 @@ def find_incorrectly_labeled_rewarded_trials(df,
         reasons=('reasons_seg', lambda x: '; '.join(sorted(x.unique()))),
     ).reset_index()
 
+    return consolidated_incorrect_trials
+
+      
+       
+      
     return consolidated_incorrect_trials
