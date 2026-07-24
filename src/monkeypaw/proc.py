@@ -567,3 +567,36 @@ def find_incorrectly_labeled_rewarded_trials(
     )
 
     return consolidated_incorrect_trials
+
+def update_target_direction(df, animal_id, session_id, trial_id, new_target_degrees):
+    """
+    Updates the 'target_dir' for a specific trial in the DataFrame.
+
+    Args:
+        df (pd.DataFrame): The input DataFrame (e.g., anix_dat1_df).
+        animal_id: The animal ID of the trial to update.
+        session_id: The session ID of the trial to update.
+        trial_id: The trial ID to update.
+        new_target_degrees (float): The new target direction in degrees.
+
+    Returns:
+        pd.DataFrame: The DataFrame with the updated 'target_dir'.
+    """
+
+    # Convert new_target_degrees to radians
+    new_target_dir_radians = np.radians(new_target_degrees)
+
+    # Create a copy to avoid SettingWithCopyWarning if df is a slice
+    df_copy = df.copy()
+
+    # Update the 'target_dir' for the specified trial
+    df_copy.loc[
+        (df_copy['animal'] == animal_id) &
+        (df_copy['session'] == session_id) &
+        (df_copy['trial_id'] == trial_id),
+        'target_dir'
+    ] = new_target_dir_radians
+
+    print(f"Updated target_dir for Animal {animal_id}, Session {session_id}, Trial {trial_id} to {new_target_dir_radians:.2f} radians ({new_target_degrees:.0f} degrees).")
+
+    return df_copy
