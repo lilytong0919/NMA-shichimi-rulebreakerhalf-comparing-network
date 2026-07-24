@@ -132,3 +132,50 @@ def plot_cursor_trajectory(df_gpb_session_trial):
     plt.gca().set_aspect('equal', adjustable='box') # Equal scaling for x and y axes
     plt.legend()
     plt.show()
+
+
+def plot_events_by_brain_region(df):
+    """
+    Plots events over time for 'M1', 'PMd', 'Area2' and NaN brain regions separately
+    from a given DataFrame.
+
+    Args:
+        df (pd.DataFrame): DataFrame containing trial data with 'brain_region' column.
+    """
+
+    # Plot for M1 brain region
+    m1_df = df[df['brain_region'] == 'M1']
+    if not m1_df.empty:
+        print("\nPlotting events for M1 Brain Region:")
+        plot_events_over_time(m1_df)
+    else:
+        print("\nNo data found for M1 Brain Region.")
+
+    # Plot for PMd brain region
+    pmd_df = df[df['brain_region'] == 'PMd']
+    if not pmd_df.empty:
+        print("\nPlotting events for PMd Brain Region:")
+        plot_events_over_time(pmd_df)
+    else:
+        print("\nNo data found for PMd Brain Region.")
+
+    # Plot for Area2 brain region
+    pmd_df = df[df['brain_region'] == 'Area2']
+    if not pmd_df.empty:
+        print("\nPlotting events for Area2 Brain Region:")
+        plot_events_over_time(pmd_df)
+    else:
+        print("\nNo data found for Area2 Brain Region.")
+
+    # Plot for NaN brain region
+    nan_brain_region_df = df[df['brain_region'].isnull()]
+    if not nan_brain_region_df.empty:
+        print("\nPlotting events for NaN Brain Region:")
+        plot_events_over_time(nan_brain_region_df)
+    else:
+        # Check if 'brain_region' column exists and has non-NaN values
+        if 'brain_region' in df.columns and not df['brain_region'].isnull().all():
+            print("\nNo NaN brain region data found in the current DataFrame for plotting.")
+        else:
+            print("\n'brain_region' column is either missing or entirely NaN. No NaN brain region plots to generate.")
+
