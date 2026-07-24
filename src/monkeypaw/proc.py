@@ -600,3 +600,42 @@ def update_target_direction(df, animal_id, session_id, trial_id, new_target_degr
     print(f"Updated target_dir for Animal {animal_id}, Session {session_id}, Trial {trial_id} to {new_target_dir_radians:.2f} radians ({new_target_degrees:.0f} degrees).")
 
     return df_copy
+
+def mark_trials_as_failed(df, trials_to_mark):
+    """
+    Marks the 'result' column of specified trials as 'F' (Failed).
+
+    Args:
+        df (pd.DataFrame): The input DataFrame (e.g., anix_dat1_df).
+        trials_to_mark (list of dict): A list of dictionaries, where each dictionary
+                                      contains 'animal', 'session', and 'trial_id'
+                                      to identify the trials to be updated.
+
+    Returns:
+        pd.DataFrame: The DataFrame with the updated 'result' column.
+    """
+    df_copy = df.copy()
+    updated_count = 0
+
+    for trial_info in trials_to_mark:
+        animal = trial_info['animal']
+        session = trial_info['session']
+        trial_id = trial_info['trial_id']
+
+        # Select rows matching the animal, session, and trial_id
+        mask = (
+            (df_copy['animal'] == animal) &
+            (df_copy['session'] == session) &
+            (df_copy['trial_id'] == trial_id)
+        )
+
+        # Check if there are any rows to update
+        if mask.any():
+            df_copy.loc[mask, 'result'] = 'F'
+            updated_count += 1
+            print(f"Marked Animal {animal}, Session {session}, Trial {trial_id} as 'F' (Failed).")
+        else:
+            print(f"Warning: Trial (Animal {animal}, Session {session}, Trial {trial_id}) not found in DataFrame.")
+
+    print(f"\nSuccessfully updated 'result' to 'F' for {updated_count} unique trials.")
+    return df_copy
