@@ -1,9 +1,16 @@
 import matplotlib.pyplot as plt
 
-def plot_cursor_trajectory(df_gpb_session_trial):
-    " `plot_cursor_trajectory` calculates target direction and plots the cursor trajectory,"
-    " along with event markers. It takes `df_gpb_session_trial` as its only argument"
-
+def plot_cursor_trajectory(df_gpb_session_trial, max_abs_val=None):
+    
+    """ 
+    `plot_cursor_trajectory` calculates target direction and plots the cursor trajectory,
+    along with event markers. It takes `df_gpb_session_trial` as its only argument
+    
+    Args:
+    df_gpb_session_trial: pd dataframe grouped by session and trial for animal x
+    max_abs_val: symmetric limits based on the maximum absolute value, centered at 0
+    """
+    
     if df_gpb_session_trial.empty:
         print("DataFrame is empty, cannot plot trajectory.")
         return
@@ -105,7 +112,8 @@ def plot_cursor_trajectory(df_gpb_session_trial):
     y_max_data = df_gpb_session_trial['cursor_pos_y'].max()
 
     # Determine the maximum absolute value among all min/max data points
-    max_abs_val = max(abs(x_min_data), abs(x_max_data), abs(y_min_data), abs(y_max_data))+0.5
+    if max_abs_val is None:
+        max_abs_val = max(abs(x_min_data), abs(x_max_data), abs(y_min_data), abs(y_max_data))+0.5
 
     # Set new symmetric limits based on the maximum absolute value, centered at 0
     plt.xlim(-max_abs_val, max_abs_val)
@@ -133,7 +141,69 @@ def plot_cursor_trajectory(df_gpb_session_trial):
     plt.legend()
     plt.show()
 
+def plot_events_over_time(df_gpb_session_trial):
 
+    """
+    Displays the occurrences of events ('EventTarget_Onset', 'EventGo_cue') as vertical lines
+    on a time-series plot for a given animal, session, and trial. The time is relative to
+    the start of the trial.
+
+    Args:
+        df_gpb_session_trial (pd.DataFrame): DataFrame containing trial data for a specific
+                                           animal, session, and trial, including 'time_s',
+                                           'EventTarget_Onset', 'EventGo_cue', 'animal',
+                                           'session', 'trial_id', 'datasetID', 'result', and
+                                           'target_dir' columns.
+    """
+    
+    if df_gpb_session_trial.empty:
+        print("DataFrame is empty, cannot plot events.")
+        return
+
+    # Get trial start time for relative timing
+    trial_start_time = df_gpb_session_trial['time_s'].iloc[0]
+
+    # Prepare event data
+    events = {
+        'EventTarget_Onset': 'green',
+        'EventGo_cue': 'purple'
+    }
+
+    plt.figure(figsize=(12, 4))
+
+    # Add line for the start of the trial
+    plt.axvline(0, color='blue', linestyle='-', linewidth=2, label='Trial Start (Relative: 0.00 s)')
+
+    # Plot events as vertical lines
+    for event_name, color in events.items():
+        event_times = df_gpb_session_trial[df_gpb_session_trial[event_name] == True]['time_s']
+        if not event_times.empty:
+            for t in event_times:
+                relative_time = t - trial_start_time
+                plt.axvline(relative_time, color=color, linestyle='--', label=f'{event_name} (Relative: {relative_time:.2f} s)')
+
+    # Add line for the end of the trial
+    trial_end_time = df_gpb_session_trial['time_s'].iloc[-1]
+    relative_trial_end_time = trial_end_time - trial_start_time
+    plt.axvline(relative_trial_end_time, color='red', linestyle='-', linewidth=2, label=f'Trial End (Relative: {relative_trial_end_time:.2f} s)')
+
+    # Set title and labels
+    animal = df_gpb_session_trial['animal'].iloc[0]
+    session = df_gpb_session_trial['session'].iloc[0]
+    trial_id = df_gpb_session_trial['trial_id'].iloc[0]
+    dataset_id = df_gpb_session_trial['datasetID'].iloc[0]
+    result_dic = {'R':'Rewarded','A':'Aborted','F':'Failed','I':'Incomplete'}
+    result_str = result_dic[df_gpb_session_trial['result'].iloc[0]]
+    target_dg = int(np.degrees(df_gpb_session_trial['target_dir'].iloc[0]))
+
+    plt.title(f'Events Over Time for Dataset {dataset_id}: Animal {animal}, Session {session}, Trial {trial_id} - Target {target_dg}°, result {result_str}')
+    plt.xlabel('Time Relative to Trial Start (s)')
+    plt.ylabel('Event Occurrence')
+    plt.yticks([]) # Remove y-axis ticks as they are not needed
+    plt.legend()
+    plt.grid(True)
+    plt.show()
+    
 def plot_events_by_brain_region(df):
     """
     Plots events over time for 'M1', 'PMd', 'Area2' and NaN brain regions separately
@@ -179,3 +249,4 @@ def plot_events_by_brain_region(df):
         else:
             print("\n'brain_region' column is either missing or entirely NaN. No NaN brain region plots to generate.")
 
+    
