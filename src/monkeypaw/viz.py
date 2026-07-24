@@ -1,4 +1,6 @@
 import matplotlib.pyplot as plt
+import numpy as np
+import pandas as pd
 
 def plot_cursor_trajectory(df_gpb_session_trial, max_abs_val=None):
     
