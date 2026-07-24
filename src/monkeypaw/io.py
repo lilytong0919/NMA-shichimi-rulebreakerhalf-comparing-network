@@ -41,7 +41,24 @@ def nap_load_data(file_path):
     return data
 
 
-def get_behav(data: nap.NWBFile) -> nap.TsdFrame:
+def get_spike_count(data: nap.NWBFile, indices: list | None = None) -> nap.TsdFrame:
+    """
+    Get the spikes counts from the pynapple.NWBFile object, load in
+    the actual data from the pynapple.NWBFile object, and return it as a pynapple.TsdFrame object.
+    Input:
+        data: pynapple.NWBFile
+            The loaded nwb file as a pynapple.NWBFile object.
+    Return:
+        spike_count: pynapple.TsdFrame
+            The spike count from the loaded nwb file.
+    """
+    spike_count = data["spikes_counts"].copy()
+    if indices is not None:
+        spike_count = spike_count[indices]
+    return spike_count
+
+
+def get_behav(data: nap.NWBFile, indices: list | None = None) -> nap.TsdFrame:
     """
     Get the behavioral data from the pynapple.NWBFile object, load in
     the actual data from the pynapple.NWBFile object, and return it as a
@@ -79,22 +96,9 @@ def get_behav(data: nap.NWBFile) -> nap.TsdFrame:
         else:
             d.append(np.full_like(t, np.nan))  # Fill with NaN if key is missing
     data = nap.TsdFrame(t, np.column_stack(d), columns=behav_keys)
+    if indices is not None:
+        data = data[indices]
     return data
-
-
-def get_spike_count(data: nap.NWBFile):
-    """
-    Get the spikes counts from the pynapple.NWBFile object, load in
-    the actual data from the pynapple.NWBFile object, and return it as a pynapple.TsdFrame object.
-    Input:
-        data: pynapple.NWBFile
-            The loaded nwb file as a pynapple.NWBFile object.
-    Return:
-        spike_count: pynapple.TsdFrame
-            The spike count from the loaded nwb file.
-    """
-    spike_count = data["spikes_counts"].copy()
-    return spike_count
 
 
 def get_info(data: nap.NWBFile):
