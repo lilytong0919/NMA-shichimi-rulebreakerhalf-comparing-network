@@ -270,6 +270,7 @@ def find_incorrectly_labeled_rewarded_trials(df,
     2. Duration from 'EventGo_cue' to the end of the trial segment is not within
        (duration_expected).
     3. The cursor's endpoint direction for the trial segment is not within angle_tolerance_deg of the target_dir.
+    4. The 'target_dir' value is missing (NaN).
 
     Args:
         df (pd.DataFrame): The DataFrame containing trial data.
@@ -318,13 +319,12 @@ def find_incorrectly_labeled_rewarded_trials(df,
         is_target_onset_within_criteria = False
         go_cue_dist_valid = False
         is_go_cue_within_criteria = False
-        # Check if cursor position columns exist and have non-NaN values
-        cursor_data_present = 'cursor_pos_x' in segment_df.columns and \
-                              not segment_df['cursor_pos_x'].isnull().all() and \
-                              not segment_df['cursor_pos_y'].isnull().all()
 
+        # --- Target Direction missing/NaN ---
+        if 'target_dir' not in segment_df.columns or pd.isna(segment_df['target_dir'].iloc[0]):
+            is_incorrect_segment = True
+            segment_reasons.append("Target direction (target_dir) is missing or NaN")
 
-        # --- Criterion 1: Target Onset / Go Cue position ---
         # Check if cursor position columns exist
         cursor_columns_exist = 'cursor_pos_x' in segment_df.columns and 'cursor_pos_y' in segment_df.columns
 
@@ -335,7 +335,17 @@ def find_incorrectly_labeled_rewarded_trials(df,
             if has_target_onset_event_seg:
                 target_onset_x = target_onset_event_rows['cursor_pos_x'].iloc[0]
                 target_onset_y = target_onset_event_rows['cursor_pos_y'].iloc[0]
-                if not np.isnan(target_onset_x) and not np.isnan(target_onset_y):
+
+                if np.isnan(target_onset_x) and np.isnan(target_onset_y):
+                    is_incorrect_segment = True
+                    segment_reasons.append("Target Onset: Both cursor_pos_x and cursor_pos_y are NaN")
+                elif np.isnan(target_onset_x):
+                    is_incorrect_segment = True
+                    segment_reasons.append(f"Target Onset: cursor_pos_x is NaN (cursor_pos_y={target_onset_y:.2f})")
+                elif np.isnan(target_onset_y):
+                    is_incorrect_segment = True
+                    segment_reasons.append(f"Target Onset: cursor_pos_y is NaN (cursor_pos_x={target_onset_x:.2f})")
+                else: # Both are not NaN, calculate distance and check criteria
                     dist_target_onset_seg = np.sqrt(target_onset_x**2 + target_onset_y**2)
                     target_onset_dist_valid = True # Mark as valid for comparison
                     if dist_target_onset_seg > pos_threshold_cm:
@@ -349,7 +359,17 @@ def find_incorrectly_labeled_rewarded_trials(df,
             if has_go_cue_event_seg:
                 go_cue_x = go_cue_event_rows['cursor_pos_x'].iloc[0]
                 go_cue_y = go_cue_event_rows['cursor_pos_y'].iloc[0]
-                if not np.isnan(go_cue_x) and not np.isnan(go_cue_y):
+
+                if np.isnan(go_cue_x) and np.isnan(go_cue_y):
+                    is_incorrect_segment = True
+                    segment_reasons.append("Go Cue: Both cursor_pos_x and cursor_pos_y are NaN")
+                elif np.isnan(go_cue_x):
+                    is_incorrect_segment = True
+                    segment_reasons.append(f"Go Cue: cursor_pos_x is NaN (cursor_pos_y={go_cue_y:.2f})")
+                elif np.isnan(go_cue_y):
+                    is_incorrect_segment = True
+                    segment_reasons.append(f"Go Cue: cursor_pos_y is NaN (cursor_pos_x={go_cue_x:.2f})")
+                else: # Both are not NaN, calculate distance and check criteria
                     dist_go_cue_seg = np.sqrt(go_cue_x**2 + go_cue_y**2)
                     go_cue_dist_valid = True # Mark as valid for comparison
                     if dist_go_cue_seg > pos_threshold_cm:
@@ -385,12 +405,16 @@ def find_incorrectly_labeled_rewarded_trials(df,
             segment_reasons.append("Go Cue event missing, cannot check duration")
 
         # --- Criterion 3: Endpoint direction relative to Target Direction ---
-        if cursor_data_present and 'target_dir' in segment_df.columns and not pd.isna(segment_df['target_dir'].iloc[0]):
+        # Ensure cursor position columns exist for this check as well
+        if cursor_columns_exist and 'target_dir' in segment_df.columns and not pd.isna(segment_df['target_dir'].iloc[0]):
             endpoint_x = segment_df['cursor_pos_x'].iloc[-1]
             endpoint_y = segment_df['cursor_pos_y'].iloc[-1]
             target_direction_rad = segment_df['target_dir'].iloc[0]
 
-            if not np.isnan(endpoint_x) and not np.isnan(endpoint_y):
+            if np.isnan(endpoint_x) or np.isnan(endpoint_y):
+                is_incorrect_segment = True
+                segment_reasons.append("Endpoint cursor position (x or y) is NaN for angle check")
+            else:
                 endpoint_angle_rad = np.arctan2(endpoint_y, endpoint_x)
 
                 # Calculate angular difference, normalizing to -pi to pi
@@ -402,10 +426,12 @@ def find_incorrectly_labeled_rewarded_trials(df,
                 if np.abs(angle_diff_rad) > angle_tolerance_rad:
                     is_incorrect_segment = True
                     segment_reasons.append(f"Endpoint angle ({endpoint_angle_seg_deg:.1f}°) not ~Target ({target_direction_seg_deg:.1f}°, diff {np.degrees(angle_diff_rad):.1f}°)")
-            else:
-                segment_reasons.append("Endpoint cursor position missing for angle check")
         else:
-            segment_reasons.append("Cursor data or target direction missing for angle check")
+            # This else block is for when cursor_columns_exist is False or target_dir is missing/NaN
+            # The specific NaN check for target_dir is now handled at the beginning of the loop.
+            if not cursor_columns_exist:
+                 segment_reasons.append("Cursor data missing for angle check (for endpoint direction)")
+            # If target_dir is NaN, it's already added a reason at the start.
 
         # If this segment was flagged, record its details
         if is_incorrect_segment:
@@ -447,9 +473,4 @@ def find_incorrectly_labeled_rewarded_trials(df,
         reasons=('reasons_seg', lambda x: '; '.join(sorted(x.unique()))),
     ).reset_index()
 
-    return consolidated_incorrect_trials
-
-      
-       
-      
     return consolidated_incorrect_trials
