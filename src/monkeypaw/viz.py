@@ -141,6 +141,7 @@ def plot_cursor_trajectory(df_gpb_session_trial, max_abs_val=None):
     plt.legend()
     plt.show()
 
+
 def plot_events_over_time(df_gpb_session_trial):
 
     """
@@ -155,7 +156,7 @@ def plot_events_over_time(df_gpb_session_trial):
                                            'session', 'trial_id', 'datasetID', 'result', and
                                            'target_dir' columns.
     """
-    
+
     if df_gpb_session_trial.empty:
         print("DataFrame is empty, cannot plot events.")
         return
@@ -194,7 +195,13 @@ def plot_events_over_time(df_gpb_session_trial):
     dataset_id = df_gpb_session_trial['datasetID'].iloc[0]
     result_dic = {'R':'Rewarded','A':'Aborted','F':'Failed','I':'Incomplete'}
     result_str = result_dic[df_gpb_session_trial['result'].iloc[0]]
-    target_dg = int(np.degrees(df_gpb_session_trial['target_dir'].iloc[0]))
+
+    # Handle NaN in target_dir for display
+    target_dir_val = df_gpb_session_trial['target_dir'].iloc[0]
+    if pd.isna(target_dir_val):
+        target_dg = 'N/A'
+    else:
+        target_dg = int(np.degrees(target_dir_val))
 
     plt.title(f'Events Over Time for Dataset {dataset_id}: Animal {animal}, Session {session}, Trial {trial_id} - Target {target_dg}°, result {result_str}')
     plt.xlabel('Time Relative to Trial Start (s)')
