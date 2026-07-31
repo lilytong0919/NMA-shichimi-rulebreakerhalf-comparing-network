@@ -24,11 +24,11 @@ def plot_cursor_trajectory(df_gpb_session_trial, max_abs_val=None):
     # Format target direction for title and labels, handling NaN
     target_dir_title = "N/A"
     if unique_target_dirs_deg and not pd.isna(unique_target_dirs_deg[0]):
-        target_dir_title = f"{int(unique_target_dirs_deg[0])}°"
+        target_dir_title = f"{np.round(unique_target_dirs_deg[0])}°"
 
     # Print statement for target direction (original code had this before the if/else for cursor_pos_x.isnull().all())
     if unique_target_dirs_deg:
-        print('Target direction for session ',df_gpb_session_trial['session'].unique()[0],', trial ', df_gpb_session_trial['trial_id'].unique()[0],': ', unique_target_dirs_deg[0], ' degrees')
+        print('Target direction for session ',df_gpb_session_trial['session'].unique()[0],', trial ', df_gpb_session_trial['trial_id'].unique()[0],': ', np.round(unique_target_dirs_deg[0]), ' degrees')
 
 
     # Check if cursor position data is all NaN
