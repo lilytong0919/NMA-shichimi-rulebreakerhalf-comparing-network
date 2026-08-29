@@ -1,6 +1,6 @@
 # NMA-shichimi-rulebreakerhalf-comparing-network
 
-**The shared github repo for functions are script used for group project: neuromatch AI 2026, pod: shichimi, group: rulebreaker1/2, topic: comparing network.**
+**The shared github repo for functions are script used for our group project: Neuromatch Academy (NMA) NeuroAI Summer Program 2026, pod: shichimi, group: rulebreaker1/2, topic: comparing network.**
 
 ## Introduction
 With the advent of artificial intelligence and bio-inspired models, animal model data has been extensively studied and mapped to compare artificial to biological relevancy. Within the field of neuroscience and artificial intelligence literature lies a paradigm of reaching task experiments in macaque monkey models, called “centre-out reaches” (Georgopolous et al,, 1982). In this specific paradigm, comparisons of artificial to biological relevancy hinge on models of algebraic mathematical models, such as linear regression, and including manifolds. By drawing on these multitudes of fields, we aim to combine biological open source data with mathematical analyses in order to compare to artificial model performance. 
