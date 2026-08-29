@@ -7,13 +7,6 @@ With the advent of artificial intelligence and bio-inspired models, animal model
 
 ## Research Focus
 Comparing 2 motornet RNN-GRUs (Standard BPTT + Dale’s Backpropagation) with macaque monkey neural data across motor regions (M1, PMd) during center-out tasks: focusing on performance, geometric representation (RSA), and dynamical trajectory (DSA).
-
-## References
-- Balwani, A., Wang, A. Q., Najafi, F., & Choi, H. (2025). Constructing biologically constrained RNNs via Dale's backpropagation and topologically informed pruning. *Science Advances*, 11(50), eadw4970. https://doi.org/10.1126/sciadv.adw4970
-- Codol, O., Michaels, J. A., Kashefi, M., Pruszynski, J. A., & Gribble, P. L. (2024). MotorNet, a Python toolbox for controlling differentiable biomechanical effectors with artificial neural networks. *eLife*, 12, RP88591. https://doi.org/10.7554/eLife.88591
-- Ostrow, M., Eisen, A., Kozachkov, L., & Fiete, I. (2023). Beyond geometry: Comparing the temporal structure of computation in neural circuits with Dynamical Similarity Analysis. *Advances in Neural Information Processing Systems (NeurIPS 2023)*. arXiv:2306.10168. https://arxiv.org/abs/2306.10168
-- Filipe, A. C., & Park, I. M. (2025). *NeuroTask - Center-Out Target Task: A benchmark dataset for multi-task, -session and -subject neural analysis* (Version draft) [Data set]. DANDI Archive. https://dandiarchive.org/dandiset/001057
-
   
 ## Contributors
 - Lily Tong (@lilytong0919 on GitHub)
@@ -24,5 +17,10 @@ Comparing 2 motornet RNN-GRUs (Standard BPTT + Dale’s Backpropagation) with ma
 - Joiakim Adjei (@Joiakim on GitHub)
 - Ravi Ranjan (@AviJxn on GitHub)
 
+## References
+- Balwani, A., Wang, A. Q., Najafi, F., & Choi, H. (2025). Constructing biologically constrained RNNs via Dale's backpropagation and topologically informed pruning. *Science Advances*, 11(50), eadw4970. https://doi.org/10.1126/sciadv.adw4970
+- Codol, O., Michaels, J. A., Kashefi, M., Pruszynski, J. A., & Gribble, P. L. (2024). MotorNet, a Python toolbox for controlling differentiable biomechanical effectors with artificial neural networks. *eLife*, 12, RP88591. https://doi.org/10.7554/eLife.88591
+- Ostrow, M., Eisen, A., Kozachkov, L., & Fiete, I. (2023). Beyond geometry: Comparing the temporal structure of computation in neural circuits with Dynamical Similarity Analysis. *Advances in Neural Information Processing Systems (NeurIPS 2023)*. arXiv:2306.10168. https://arxiv.org/abs/2306.10168
+- Filipe, A. C., & Park, I. M. (2025). *NeuroTask - Center-Out Target Task: A benchmark dataset for multi-task, -session and -subject neural analysis* (Version draft) [Data set]. DANDI Archive. https://dandiarchive.org/dandiset/001057
 
 
